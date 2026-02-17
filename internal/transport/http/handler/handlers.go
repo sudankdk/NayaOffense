@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/sudankdk/offense/internal/helper"
 	"github.com/sudankdk/offense/internal/tools"
 )
 
@@ -28,12 +29,13 @@ func (h *Handler) RunTool(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid input JSON", http.StatusBadRequest)
 		return
 	}
-	result, err := tools.Run(r.Context(), input)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
+	// result, err := tools.Run(r.Context(), input)
+	// if err != nil {
+	// 	http.Error(w, err.Error(), http.StatusBadRequest)
+	// 	return
+	// }
+	resp := helper.ExecuteResponse(r.Context(), tools, input)
 
-	WriteJson(w, http.StatusOK, result)
+	WriteJson(w, http.StatusOK, resp)
 
 }
