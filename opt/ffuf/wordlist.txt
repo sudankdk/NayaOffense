@@ -1,0 +1,10 @@
+admin
+login
+dashboard
+api
+config
+backup
+test
+index
+home
+user
