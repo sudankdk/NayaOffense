@@ -43,26 +43,36 @@ func (t *Tool) Run(ctx context.Context, input map[string]string) (any, error) {
 	tmpFile.Close()
 	defer os.Remove(tmpPath)
 
-	_, err = runner.Execute(ctx, bin,
+	events := runner.Execute(ctx, bin,
 		"-u", input["url"],
 		"-w", input["wordlist"],
 		"-of", "json",
 		"-o", tmpPath,
 		"-s",
 	)
-	if err != nil {
-		return nil, err
+
+	var runnerErr error
+	for ev := range events {
+		switch ev.Type {
+		case runner.EventError:
+			runnerErr = fmt.Errorf("runner error: %s", ev.Data)
+		case runner.EventComplete:
+			if runnerErr != nil {
+				return nil, runnerErr
+			}
+			raw, err := os.ReadFile(tmpPath)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read ffuf output: %w", err)
+			}
+			if len(raw) == 0 {
+				return nil, errors.New("ffuf produced no output")
+			}
+			return parseOutput(string(raw))
+		}
 	}
 
-	raw, err := os.ReadFile(tmpPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read ffuf output: %w", err)
-	}
-	if len(raw) == 0 {
-		return nil, errors.New("ffuf produced no output")
-	}
+	return nil, errors.New("ffuf did not produce any output")
 
-	return parseOutput(string(raw))
 }
 
 func init() {

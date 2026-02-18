@@ -29,13 +29,20 @@ func (h *Handler) RunTool(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid input JSON", http.StatusBadRequest)
 		return
 	}
-	// result, err := tools.Run(r.Context(), input)
-	// if err != nil {
-	// 	http.Error(w, err.Error(), http.StatusBadRequest)
-	// 	return
-	// }
-	resp := helper.ExecuteResponse(r.Context(), tools, input)
 
-	WriteJson(w, http.StatusOK, resp)
+	// SSE headers
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("X-Accel-Buffering", "no") // Disable nginx buffering
 
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "Streaming not supported", http.StatusInternalServerError)
+		return
+	}
+
+	// Stream events as they happen
+	helper.ExecuteResponseStream(r.Context(), tools, input, w, flusher)
 }
